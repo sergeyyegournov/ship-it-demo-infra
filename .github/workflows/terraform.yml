@@ -1,0 +1,92 @@
+name: terraform
+# PR: fmt + validate + plan for both roots (required checks).
+# main: apply, held by the `production-infra` environment (a human approves each apply).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      destroy_aws:
+        description: 'Destroy the AWS stack (demo teardown). Needs environment approval.'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
+  GITHUB_TOKEN: ${{ secrets.GH_TF_TOKEN }}
+
+jobs:
+  plan:
+    if: github.event_name != 'workflow_dispatch'
+    name: plan (${{ matrix.root }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        root: [github, aws]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.10.5 }
+      - name: State bucket
+        id: state
+        run: echo "bucket=$(scripts/bootstrap-state.sh | tail -1)" >> "$GITHUB_OUTPUT"
+      - name: fmt
+        run: terraform fmt -check -recursive
+      - name: init
+        working-directory: ${{ matrix.root }}
+        run: terraform init -input=false -backend-config="bucket=${{ steps.state.outputs.bucket }}" -backend-config="region=us-east-1"
+      - name: validate
+        working-directory: ${{ matrix.root }}
+        run: terraform validate
+      - name: plan
+        working-directory: ${{ matrix.root }}
+        shell: bash
+        run: |
+          terraform plan -input=false -lock-timeout=60s -no-color -out=tfplan | tee plan.txt
+          { echo '### terraform plan (${{ matrix.root }})'; echo '```'; tail -n 60 plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: apply (${{ matrix.root }})
+    runs-on: ubuntu-latest
+    environment: production-infra   # human approval
+    strategy:
+      max-parallel: 1
+      matrix:
+        root: [aws, github]   # aws first: it writes the deploy variables the app repo reads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.10.5 }
+      - id: state
+        run: echo "bucket=$(scripts/bootstrap-state.sh | tail -1)" >> "$GITHUB_OUTPUT"
+      - working-directory: ${{ matrix.root }}
+        run: terraform init -input=false -backend-config="bucket=${{ steps.state.outputs.bucket }}" -backend-config="region=us-east-1"
+      - working-directory: ${{ matrix.root }}
+        run: terraform apply -input=false -auto-approve -lock-timeout=120s -no-color
+
+  destroy-aws:
+    if: github.event_name == 'workflow_dispatch' && inputs.destroy_aws
+    runs-on: ubuntu-latest
+    environment: production-infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.10.5 }
+      - id: state
+        run: echo "bucket=$(scripts/bootstrap-state.sh | tail -1)" >> "$GITHUB_OUTPUT"
+      - working-directory: aws
+        run: terraform init -input=false -backend-config="bucket=${{ steps.state.outputs.bucket }}" -backend-config="region=us-east-1"
+      - working-directory: aws
+        run: terraform destroy -input=false -auto-approve -no-color
