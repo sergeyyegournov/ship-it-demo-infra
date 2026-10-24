@@ -49,6 +49,11 @@ data "aws_subnets" "public" {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
   }
+  # the default VPC can hold extra subnets in an AZ; an ALB accepts only one subnet per AZ
+  filter {
+    name   = "default-for-az"
+    values = ["true"]
+  }
 }
 
 # --- image registry ---------------------------------------------------------
