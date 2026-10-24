@@ -23,18 +23,14 @@ import {
 }
 import {
   to = github_repository_environment_deployment_policy.main_only
-  id = "ship-it-demo:production:main"
+  id = "ship-it-demo:production:64194582"
 }
 
-# The infra repo's own controls are created by scripts/setup-infra-repo.sh on first push,
-# then adopted here.
+# The infra repo and its environment were created by scripts/setup-infra-repo.sh and are adopted
+# here (policy ids are numeric). Its branch protection is created by Terraform.
 import {
   to = github_repository.infra
   id = "ship-it-demo-infra"
-}
-import {
-  to = github_branch_protection.infra_main
-  id = "ship-it-demo-infra:main"
 }
 import {
   to = github_repository_environment.production_infra
@@ -42,5 +38,5 @@ import {
 }
 import {
   to = github_repository_environment_deployment_policy.infra_main_only
-  id = "ship-it-demo-infra:production-infra:main"
+  id = "ship-it-demo-infra:production-infra:64237680"
 }
