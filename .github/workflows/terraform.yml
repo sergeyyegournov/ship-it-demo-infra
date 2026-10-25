@@ -24,6 +24,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
   GITHUB_TOKEN: ${{ secrets.GH_TF_TOKEN }}
+  TF_VAR_alarm_email: ${{ secrets.ALARM_EMAIL }}
 
 jobs:
   plan:
