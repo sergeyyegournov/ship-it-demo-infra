@@ -48,6 +48,13 @@ jobs:
       - name: init
         working-directory: ${{ matrix.root }}
         run: terraform init -input=false -backend-config="bucket=${{ steps.state.outputs.bucket }}" -backend-config="region=us-east-1"
+      - name: Reconcile the app repo's branch-protection rule
+        if: matrix.root == 'github'
+        working-directory: github
+        # Landing a .github/ change lifts and restores that rule, which gives it a new ID. Forget the stale
+        # state entry; the permanent import block in imports.tf re-adopts the live rule, so a plan always
+        # shows "1 to import" and never tries to create a second rule.
+        run: terraform state rm github_branch_protection.app_main || true
       - name: validate
         working-directory: ${{ matrix.root }}
         run: terraform validate
@@ -75,6 +82,13 @@ jobs:
         run: echo "bucket=$(scripts/bootstrap-state.sh | tail -1)" >> "$GITHUB_OUTPUT"
       - working-directory: ${{ matrix.root }}
         run: terraform init -input=false -backend-config="bucket=${{ steps.state.outputs.bucket }}" -backend-config="region=us-east-1"
+      - name: Reconcile the app repo's branch-protection rule
+        if: matrix.root == 'github'
+        working-directory: github
+        # Landing a .github/ change lifts and restores that rule, which gives it a new ID. Forget the stale
+        # state entry; the permanent import block in imports.tf re-adopts the live rule, so a plan always
+        # shows "1 to import" and never tries to create a second rule.
+        run: terraform state rm github_branch_protection.app_main || true
       - working-directory: ${{ matrix.root }}
         run: terraform apply -input=false -auto-approve -lock-timeout=120s -no-color
 
