@@ -5,9 +5,16 @@ import {
   to = github_repository.app
   id = "ship-it-demo"
 }
+# The app repo's rule is deleted and recreated whenever a workflow change needs a protection lift
+# (scripts/setup-github.sh), which changes its ID. Re-adopt the live rule under a new address and
+# forget the stale one without touching GitHub.
 import {
-  to = github_branch_protection.main
+  to = github_branch_protection.app_main
   id = "ship-it-demo:main"
+}
+removed {
+  from = github_branch_protection.main
+  lifecycle { destroy = false }
 }
 import {
   to = github_repository_environment.production
