@@ -352,6 +352,8 @@ locals {
     WEB_BUCKET        = aws_s3_bucket.web.id
     CLOUDFRONT_ID     = aws_cloudfront_distribution.web.id
     CLOUDFRONT_DOMAIN = aws_cloudfront_distribution.web.domain_name
+    ALB_ARN_SUFFIX    = aws_lb.api.arn_suffix
+    TG_ARN_SUFFIX     = aws_lb_target_group.api.arn_suffix
   }
 }
 
