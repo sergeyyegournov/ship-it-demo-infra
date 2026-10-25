@@ -150,3 +150,27 @@ resource "github_repository_environment_deployment_policy" "infra_main_only" {
   environment    = github_repository_environment.production_infra.environment
   branch_pattern = "main"
 }
+
+# --- Wonderful: GitHub -> Wonderful function (checkpoint tracking) --------------------
+variable "wonderful_webhook_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "wonderful_webhook_url" {
+  type    = string
+  default = "https://sdlc.api.demo.wonderful.ai/api/public/functions/8b19a564-3deb-4896-8771-cf50317995b4/00000000-0000-0000-0000-000000000000/github-webhook"
+}
+
+resource "github_repository_webhook" "wonderful" {
+  repository = github_repository.app.name
+  events     = ["pull_request", "pull_request_review"]
+  active     = true
+
+  configuration {
+    url          = var.wonderful_webhook_url
+    content_type = "json"
+    insecure_ssl = false
+    secret       = var.wonderful_webhook_secret
+  }
+}
