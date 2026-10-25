@@ -41,8 +41,9 @@ resource "github_repository" "app" {
 }
 
 resource "github_actions_repository_permissions" "app" {
-  repository = github_repository.app.name
-  enabled    = true
+  repository      = github_repository.app.name
+  enabled         = true
+  allowed_actions = "all"
 }
 
 # default workflow token is read-only; Actions may not approve PRs
