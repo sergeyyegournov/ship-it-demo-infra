@@ -54,7 +54,7 @@ resource "github_workflow_repository_permissions" "app" {
 }
 
 # --- branch protection: the human gate on main ------------------------------
-resource "github_branch_protection" "main" {
+resource "github_branch_protection" "app_main" {
   repository_id                   = github_repository.app.node_id
   pattern                         = "main"
   enforce_admins                  = true
