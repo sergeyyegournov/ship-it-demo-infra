@@ -65,7 +65,7 @@ resource "github_branch_protection" "app_main" {
 
   required_status_checks {
     strict   = true
-    contexts = ["test", "agent-evals"]
+    contexts = ["test", "agent-evals", "wonderful/governance"]
   }
 
   required_pull_request_reviews {
